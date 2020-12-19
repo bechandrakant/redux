@@ -106,6 +106,15 @@
       }
     }
 
+    const motivate = (store) => (next) => (action) => {
+      if (action.type === ADD_TODO) {
+        alert("Don't forget to "+ action.todo.name)
+      } else if (action.type === ADD_GOAL) {
+        alert("That's a great Goal!")
+      }
+      return next(action)
+    }
+
     const logger = (store) => (next) => (action) => {
       const result = next(action);
       console.log(store.getState());
@@ -115,7 +124,7 @@
     const store = Redux.createStore(Redux.combineReducers({
       todos,
       goals,
-    }), Redux.applyMiddleware(checker, logger));
+    }), Redux.applyMiddleware(checker, motivate, logger));
 
     store.subscribe(() => {
       const { goals, todos } = store.getState()
