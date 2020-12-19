@@ -106,10 +106,16 @@
       }
     }
 
+    const logger = (store) => (next) => (action) => {
+      const result = next(action);
+      console.log(store.getState());
+      return result;
+    }
+
     const store = Redux.createStore(Redux.combineReducers({
       todos,
       goals,
-    }), Redux.applyMiddleware(checker));
+    }), Redux.applyMiddleware(checker, logger));
 
     store.subscribe(() => {
       const { goals, todos } = store.getState()
