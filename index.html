@@ -67,6 +67,74 @@
       })
     }
 
+    function handleInitialData() {
+      return (dispatch) => {
+        return Promise.all([
+          API.fetchTodos(),
+          API.fetchGoals(),
+        ]).then(([todos, goals]) => {
+          dispatch(receiveDataAction(todos, goals));
+        })
+      }
+    }
+
+    function handleAddTodo(name, reset) {
+      return (dispatch) => {
+        return API.saveTodo(name)
+                  .then((todo) => {
+                    dispatch(addTodoAction(todo));
+                    reset();
+                  })
+                  .catch(() => alert("An error occured, Try Again!"))
+      }
+    }
+
+    function handleDeleteTodo(todo) {
+      return ((dispatch) => {
+        dispatch(removeTodoAction(todo.id))
+          
+        return API.deleteTodo(todo.id)
+                  .catch(() => {
+                    dispatch(addTodoAction(todo))
+                    alert("Oops Some error Occured!")
+                  })
+      })
+    }
+
+    function handleToggleTodo (id) {
+      return (dispatch) => {
+        dispatch(toggleTodoAction(id))
+        
+        return API.saveTodoToggle(id)
+                  .catch(() => {
+                    dispatch(toggleTodoAction(id))
+                    alert("Oops Some error Occured!")
+                  })
+      }
+    }
+
+    function handleAddGoal(name, reset) {
+      return (dispatch) => {
+        return API.saveGoal(name)
+                  .then((goal) => {
+                    dispatch(addGoalAction(goal));
+                    reset();
+                  })
+                  .catch(() => alert("An error occured, Try Again!"))
+      }
+    }
+
+    function handleDeleteGoal() {
+      return (dispatch) => {
+        dispatch(removeGoalAction(goal.id))
+        return API.deleteGoal(goal.id)
+                  .catch(() => {
+                    dispatch(addGoalAction(goal))
+                    alert("Oops Some error Occured!")
+                  })
+      }
+    }
+
     // Reducer function
     function todos(state = [], action) {
       switch (action.type) {
@@ -132,7 +200,7 @@
       todos,
       goals,
       loading,
-    }), Redux.applyMiddleware(checker, logger));
+    }), Redux.applyMiddleware(ReduxThunk.default, checker, logger));
 
   </script>
 
@@ -163,34 +231,21 @@
         name: ""
       }
 
-      handleClick = (e) => {
+      addItem = (e) => {
         e.preventDefault()
-        return API.saveTodo(this.state.name)
-                  .then((todo) => {
-                    this.props.store.dispatch(addTodoAction(todo));
-                    this.setState({ name: ""});
-                  })
-                  .catch(() => alert("An error occured, Try Again!"))
+        this.props.store.dispatch(handleAddTodo(
+          this.state.name, 
+          () => this.setState({ name: ""})
+          )
+        )
       }
 
       removeTodo = (todo) => {
-        this.props.store.dispatch(removeTodoAction(todo.id))
-        
-        return API.deleteTodo(todo.id)
-                  .catch(() => {
-                    this.props.store.dispatch(addTodoAction(todo))
-                    alert("Oops Some error Occured!")
-                  })
+        this.props.store.dispatch(handleDeleteTodo(todo))
       }
 
       toggleTodo = (id) => {
-        this.props.store.dispatch(toggleTodoAction(id))
-        
-        return API.saveTodoToggle(id)
-                  .catch(() => {
-                    this.props.store.dispatch(toggleTodoAction(id))
-                    alert("Oops Some error Occured!")
-                  })
+        this.props.store.dispatch(handleToggleTodo(id))
       }
 
       render() {
@@ -203,7 +258,7 @@
               value={this.state.name}
               onChange={(e) => this.setState({ name: e.target.value })}
             />
-            <button onClick={this.handleClick}>Add Todo</button>
+            <button onClick={this.addItem}>Add Todo</button>
             <List 
               items={this.props.todos} 
               removeItem={this.removeTodo}
@@ -217,25 +272,17 @@
     class Goals extends React.Component {
       state = { name: "" }
 
-      handleClick = (e) => {
+      addItem = (e) => {
         e.preventDefault()
-        
-        return API.saveGoal(this.state.name)
-                  .then((goal) => {
-                    this.props.store.dispatch(addGoalAction(goal));
-                    this.setState({ name: ""});
-                  })
-                  .catch(() => alert("An error occured, Try Again!"))
-        
+        this.props.store.dispatch(
+          handleAddGoal(
+            this.state.name, 
+            () => this.setState({ name: ""})
+          ));
       }
 
       removeGoal = (goal) => {
-        this.props.store.dispatch(removeGoalAction(goal.id))
-        return API.deleteGoal(goal.id)
-                  .catch(() => {
-                    this.props.dispatch(addGoalAction(goal))
-                    alert("Oops Some error Occured!")
-                  })
+        this.props.store.dispatch(handleDeleteGoal(goal))
       }
 
       render() {
@@ -248,7 +295,7 @@
               value={this.state.name}
               onChange={(e) => this.setState({ name: e.target.value})}
             />
-            <button onClick={this.handleClick}> Add Goal</button>
+            <button onClick={this.addItem}> Add Goal</button>
             <List 
               items={this.props.goals}
               removeItem={this.removeGoal}
@@ -262,14 +309,10 @@
 
       componentDidMount() {
         const { store } = this.props
+
+        store.dispatch(handleInitialData())
+
         store.subscribe(() => this.forceUpdate())
-        
-        Promise.all([
-          API.fetchTodos(),
-          API.fetchGoals(),
-        ]).then(([todos, goals]) => {
-          store.dispatch(receiveDataAction(todos, goals));
-        })
       }
       
       render() {
